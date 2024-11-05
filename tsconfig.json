@@ -1,15 +1,18 @@
 {
   "compilerOptions": {
-    "outDir": "./dist",
-    "target": "ES2019",             // Updated to ES2019 to support flatMap
-    "module": "ES6",
-    "jsx": "react",
+    "target": "ESNext",
+    "module": "ESNext",
     "declaration": true,
-    "declarationDir": "./types",
-    "esModuleInterop": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "dist",
+    "jsx": "react-jsx",
     "moduleResolution": "node",
-    "lib": ["es2019", "dom"]        // Added "lib" option to include ES2019 and DOM types
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "resolveJsonModule": true
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules"]
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
 }

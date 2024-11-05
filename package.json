@@ -1,12 +1,16 @@
 {
   "name": "sparrowgenomelib",
   "version": "1.0.0",
-  "main": "index.js",
-  "module": "dist/index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/alevar/SparrowGenomeLib.git"
+  },
+  "main": "dist/index.cjs.js",
+  "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc"
+    "build": "rimraf dist && tsup src/index.ts --format esm,cjs --dts"
   },
   "keywords": [],
   "author": "Ales varabyou",
@@ -14,6 +18,10 @@
   "description": "Shared components for genomics (and not only) related projects built on my page",
   "devDependencies": {
     "@types/d3": "^7.4.3",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "rimraf": "^6.0.1",
+    "tsup": "^8.3.5",
     "typescript": "^5.6.3"
   },
   "dependencies": {
@@ -21,8 +29,11 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
+  "peerDependencies": {
+    "react": "^17.0.0 || ^18.0.0",
+    "react-dom": "^17.0.0 || ^18.0.0"
+  },
   "files": [
-    "dist",
-    "types"
+    "dist"
   ]
 }
