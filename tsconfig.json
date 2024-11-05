@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "outDir": "./dist",
+    "target": "ES2019",             // Updated to ES2019 to support flatMap
+    "module": "ES6",
+    "jsx": "react",
+    "declaration": true,
+    "declarationDir": "./types",
+    "esModuleInterop": true,
+    "moduleResolution": "node",
+    "lib": ["es2019", "dom"]        // Added "lib" option to include ES2019 and DOM types
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
+}
