@@ -27,10 +27,9 @@ var BedData = class _BedData {
   }
   getRange(start, end) {
     let new_data = new _BedData();
-    console.log("start1: " + start + " end: " + end);
     for (let i = 0; i < this.data.length; i++) {
       let line2 = this.data[i];
-      if (line2.start <= end && line2.end >= start) {
+      if (line2.start <= end && line2.end > start) {
         let new_line = Object.assign({}, line2);
         new_line.start = Math.max(line2.start, start);
         new_line.end = Math.min(line2.end, end);
@@ -43,10 +42,10 @@ var BedData = class _BedData {
     let new_data = new _BedData();
     for (let i = 0; i < this.data.length; i++) {
       let line2 = this.data[i];
-      for (let j = line2.start; j <= line2.end; j++) {
-        let new_line = Object.assign({}, line2);
+      for (let j = line2.start; j < line2.end; j++) {
+        let new_line = { ...line2 };
         new_line.start = j;
-        new_line.end = j;
+        new_line.end = j + 1;
         new_data.addLine(new_line);
       }
     }
@@ -848,7 +847,9 @@ var LinePlot = class {
     );
     const lineData = this.bedData.getData().flatMap((d) => {
       const points = [];
-      for (let pos = d.start; pos <= d.end; pos++) {
+      console.log(d);
+      for (let pos = d.start; pos < d.end; pos++) {
+        console.log("x: ", pos, this.xScale(pos), "y: ", d.score, this.yScale(d.score));
         points.push({ x: this.xScale(pos), y: this.yScale(d.score) });
       }
       return points;
