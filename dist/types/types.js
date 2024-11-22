@@ -1,48 +1,30 @@
-export interface BedLine {
-    seqid: string;
-    start: number;
-    end: number;
-    name: string;
-    score: number;
-    strand: string;
-}
-
 export class BedData {
-    private data: BedLine[];
-
+    data;
     constructor() {
         this.data = [];
     }
-
-    public addLine(line: BedLine): void {
+    addLine(line) {
         this.data.push(line);
     }
-
-    public get length(): number {
+    get length() {
         return this.data.length;
     }
-
-    public sort(): void {
+    sort() {
         this.data.sort((a, b) => a.start - b.start);
     }
-
-    public numEntries(): number {
+    numEntries() {
         return this.data.length;
     }
-
-    public maxScore(): number {
+    maxScore() {
         return Math.max(...this.data.map(d => d.score));
     }
-
-    public getData(): BedLine[] {
+    getData() {
         return this.data;
     }
-
-    public getPos(pos: number): BedLine[] {
+    getPos(pos) {
         return this.data.filter(d => d.start <= pos && d.end >= pos);
     }
-
-    public getRange(start: number, end: number): BedData {
+    getRange(start, end) {
         // construct a new BedData object consisting of the data within the range
         let new_data = new BedData();
         for (let i = 0; i < this.data.length; i++) {
@@ -57,8 +39,7 @@ export class BedData {
         }
         return new_data;
     }
-
-    public explode(): BedData {
+    explode() {
         // explode the data into individual lines
         let new_data = new BedData();
         for (let i = 0; i < this.data.length; i++) {
@@ -73,19 +54,4 @@ export class BedData {
         return new_data;
     }
 }
-
-export interface BedFile {
-    data: BedData;
-    fileName: string;
-    status: 1 | 0 | -1; // valid | parsing | error
-}
-
-export type Interval = [number, number];
-
-export interface Dimensions {
-    width: number;
-    height: number;
-    x: number;
-    y: number;
-    fontSize: number;
-}
+//# sourceMappingURL=types.js.map

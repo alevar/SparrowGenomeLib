@@ -1,51 +1,32 @@
 import * as d3 from "d3";
-import { Dimensions, BedData } from '../../types';
-
-interface LinePlotData {
-    dimensions: Dimensions;
-    bedData: BedData;
-    color: string;
-    xScale: d3.ScaleLinear<number, number>;
-    yScale?: d3.ScaleLinear<number, number>; // Optional yScale parameter
-}
-
 export class LinePlot {
-    private svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
-    private dimensions: Dimensions;
-    private bedData: BedData;
-    private xScale: d3.ScaleLinear<number, number>;
-    private yScale: d3.ScaleLinear<number, number>;
-    private useProvidedYScale: boolean = false;
-    private color: string;
-
-    constructor(
-        svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
-        data: LinePlotData
-    ) {
+    svg;
+    dimensions;
+    bedData;
+    xScale;
+    yScale;
+    useProvidedYScale = false;
+    color;
+    constructor(svg, data) {
         this.svg = svg;
         this.dimensions = data.dimensions;
         this.bedData = data.bedData;
         this.xScale = data.xScale;
         this.color = data.color;
-
         // Use provided yScale if available, otherwise initialize a new scale
         this.yScale = data.yScale ?? d3.scaleLinear();
         this.useProvidedYScale = data.yScale !== undefined;
     }
-
-    public get_yScale(): d3.ScaleLinear<number, number> {
+    get_yScale() {
         return this.yScale;
     }
-
-    public plot(): void {
-
+    plot() {
         // Check if yScale is already set (provided externally). If not, set it based on bedData.
         if (!this.useProvidedYScale) {
             this.yScale = d3.scaleLinear()
                 .domain([0, this.bedData.maxScore()])
                 .range([this.dimensions.height, 0]); // Reverse range if needed for correct orientation
         }
-
         // Add a background rectangle for the grid
         this.svg.append("rect")
             .attr("class", "grid-background")
@@ -55,7 +36,6 @@ export class LinePlot {
             .attr("height", this.dimensions.height)
             .attr("fill", "#f7f7f7")
             .attr("fill-opacity", 0.75);
-
         // Add horizontal grid lines
         this.svg.append("g")
             .attr("class", "grid")
@@ -64,11 +44,9 @@ export class LinePlot {
             .attr("stroke-dasharray", "5,5")
             .attr("opacity", 0.3)
             .call(d3.axisLeft(this.yScale)
-                .ticks(2)
-                .tickSize(-this.dimensions.width)
-                .tickFormat(null)
-            );
-
+            .ticks(2)
+            .tickSize(-this.dimensions.width)
+            .tickFormat(null));
         // Prepare data points for the line plot
         const lineData = this.bedData.getData().flatMap(d => {
             const points = [];
@@ -79,13 +57,11 @@ export class LinePlot {
             }
             return points;
         });
-
         // Define the line generator
-        const lineGenerator = d3.line<{ x: number, y: number }>()
+        const lineGenerator = d3.line()
             .x(d => d.x)
             .y(d => d.y)
             .curve(d3.curveMonotoneX); // Smooth the line
-
         // Draw the line path
         this.svg.append("path")
             .datum(lineData)
@@ -94,7 +70,6 @@ export class LinePlot {
             .attr("fill", "none")
             .attr("stroke", this.color)
             .attr("stroke-width", 2);
-
         // Draw circles at each data point
         this.svg.selectAll(".point")
             .data(lineData)
@@ -107,3 +82,4 @@ export class LinePlot {
             .attr("fill", this.color);
     }
 }
+//# sourceMappingURL=LinePlot.js.map

@@ -27,6 +27,7 @@ var BedData = class _BedData {
   }
   getRange(start, end) {
     let new_data = new _BedData();
+    console.log("start1: " + start + " end: " + end);
     for (let i = 0; i < this.data.length; i++) {
       let line2 = this.data[i];
       if (line2.start <= end && line2.end >= start) {
