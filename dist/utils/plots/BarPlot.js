@@ -1,50 +1,31 @@
 import * as d3 from "d3";
-
-import { Dimensions, BedData } from '../../types';
-
-interface BarPlotData {
-    dimensions: Dimensions;
-    xScale: d3.ScaleLinear<number, number>;
-    bedData: BedData;
-    color: string;
-    yScale?: d3.ScaleLinear<number, number>; // Optional yScale parameter
-}
-
 export class BarPlot {
-    private svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
-    private dimensions: Dimensions;
-    private bedData: BedData;
-    private xScale: d3.ScaleLinear<number, number>;
-    private yScale: d3.ScaleLinear<number, number>;
-    private useProvidedYScale: boolean = false;
-    private color: string;
-
-    constructor(
-        svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
-        data: BarPlotData) {
+    svg;
+    dimensions;
+    bedData;
+    xScale;
+    yScale;
+    useProvidedYScale = false;
+    color;
+    constructor(svg, data) {
         this.svg = svg;
         this.dimensions = data.dimensions;
         this.bedData = data.bedData;
         this.xScale = data.xScale;
         this.color = data.color;
-
         this.yScale = data.yScale ?? d3.scaleLinear();
         this.useProvidedYScale = data.yScale !== undefined;
     }
-
-    public get_yScale(): d3.ScaleLinear<number, number> {
+    get_yScale() {
         return this.yScale;
     }
-
-    public plot(): void {
-
+    plot() {
         // Create the y-axis scale
         if (!this.useProvidedYScale) {
             this.yScale = d3.scaleLinear()
                 .domain([0, this.bedData.maxScore()])
                 .range([this.dimensions.height, 0]); // Invert the range
         }
-
         // Add a background rectangle for the grid
         this.svg.append("rect")
             .attr("class", "grid-background")
@@ -54,7 +35,6 @@ export class BarPlot {
             .attr("height", this.dimensions.height)
             .attr("fill", "#f7f7f7")
             .attr("fill-opacity", 0.75);
-
         // Add horizontal grid lines
         this.svg.append("g")
             .attr("class", "grid")
@@ -63,10 +43,9 @@ export class BarPlot {
             .attr("stroke-dasharray", "5,5")
             .attr("opacity", 0.3)
             .call(d3.axisLeft(this.yScale)
-                .ticks(2)
-                .tickSize(-this.dimensions.width)
-                .tickFormat(null));
-
+            .ticks(2)
+            .tickSize(-this.dimensions.width)
+            .tickFormat(null));
         const minBarWidth = 5;
         this.svg.selectAll(".bar")
             .data(this.bedData.getData())
@@ -80,3 +59,4 @@ export class BarPlot {
             .attr("fill", this.color);
     }
 }
+//# sourceMappingURL=BarPlot.js.map
