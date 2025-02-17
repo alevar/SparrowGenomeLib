@@ -1135,8 +1135,8 @@ var DataPlotArray = class {
   }
   plot() {
     this.yScale = d34.scaleLinear().domain([0, this.maxValue]).range([this.dimensions.height, 0]);
-    this.svg.append("rect").attr("class", "grid-background").attr("x", 0).attr("y", 0).attr("width", this.dimensions.width).attr("height", this.dimensions.height).attr("fill", "#f7f7f7");
-    this.svg.append("g").attr("class", "grid").attr("stroke", "rgba(0, 0, 0, 0.1)").attr("stroke-width", 1).attr("stroke-dasharray", "5,5").call(d34.axisLeft(this.yScale).ticks(5).tickSize(-this.dimensions.width).tickFormat(null));
+    this.svg.append("rect").attr("class", "grid-background").attr("x", 0).attr("y", 0).attr("width", this.dimensions.width).attr("height", this.dimensions.height).attr("fill", "#f7f7f7").attr("fill-opacity", 0.75);
+    this.svg.append("g").attr("class", "grid").attr("stroke", "rgba(0, 0, 0, 0.1)").attr("stroke-width", 1).attr("stroke-dasharray", "5,5").attr("opacity", 0.3).call(d34.axisLeft(this.yScale).ticks(5).tickSize(-this.dimensions.width).tickFormat(null));
   }
   getElementSVG(index) {
     const elem_idx = this.element_indices[index];
