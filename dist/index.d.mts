@@ -1,5 +1,26 @@
 import * as d3$1 from 'd3';
 
+interface SJLine {
+    seqid: string;
+    position: number;
+    A: number;
+    C: number;
+    G: number;
+    T: number;
+    N: number;
+}
+declare class SJData {
+    private data;
+    constructor();
+    addLine(line: SJLine): void;
+    sort(): void;
+    getData(): SJLine[];
+}
+interface SJFile {
+    data: SJData;
+    fileName: string;
+    status: 1 | 0 | -1;
+}
 interface BedLine {
     seqid: string;
     start: number;
@@ -139,6 +160,7 @@ declare class D3Grid {
 }
 
 declare function parseBed(bedFileName: File): Promise<BedFile>;
+declare function parseSJ(sjFileName: File): Promise<SJFile>;
 
 declare function adjustIntervals(intervals: Interval[], start: number, end: number, separator: number): Interval[];
 declare function computeMidpoint(a: number, b: number): number;
@@ -246,6 +268,29 @@ declare class LinePlot {
     plot(): void;
 }
 
+interface SequenceLogoData {
+    dimensions: Dimensions;
+    sjData: SJData;
+    xScale: d3$1.ScaleLinear<number, number>;
+    yScale?: d3$1.ScaleLinear<number, number>;
+    colors?: {
+        [key: string]: string;
+    };
+}
+declare class SequenceLogo {
+    private svg;
+    private dimensions;
+    private sjData;
+    private xScale;
+    private yScale;
+    private useProvidedYScale;
+    private colors;
+    constructor(svg: d3$1.Selection<SVGSVGElement, unknown, null, undefined>, data: SequenceLogoData);
+    get_yScale(): d3$1.ScaleLinear<number, number>;
+    private calculateInformationContent;
+    plot(): void;
+}
+
 interface DataPlotArrayData {
     svg: d3$1.Selection<SVGSVGElement, unknown, null, undefined>;
     dimensions: Dimensions;
@@ -304,4 +349,4 @@ declare class TriangleConnector {
     plot(): void;
 }
 
-export { BarPlot, BedData, type BedFile, type BedLine, CDS, D3Grid, DataPlotArray, type Dimensions, Exon, GenomePlot, type GridConfig, type Interval, LinePlot, ORFPlot, type Padding, PathogenPlot, Transcript, Transcriptome, TranscriptomePlot, TranscriptomePlotLabels, TriangleConnector, adjustIntervals, computeMidpoint, parseBed };
+export { BarPlot, BedData, type BedFile, type BedLine, CDS, D3Grid, DataPlotArray, type Dimensions, Exon, GenomePlot, type GridConfig, type Interval, LinePlot, ORFPlot, type Padding, PathogenPlot, SJData, type SJFile, type SJLine, SequenceLogo, Transcript, Transcriptome, TranscriptomePlot, TranscriptomePlotLabels, TriangleConnector, adjustIntervals, computeMidpoint, parseBed, parseSJ };

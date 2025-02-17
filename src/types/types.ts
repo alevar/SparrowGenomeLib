@@ -1,3 +1,39 @@
+export interface SJLine {
+    seqid: string;
+    position: number;
+    A: number;
+    C: number;
+    G: number;
+    T: number;
+    N: number;
+}
+
+export class SJData {
+    private data: SJLine[];
+
+    constructor() {
+        this.data = [];
+    }
+
+    public addLine(line: SJLine): void {
+        this.data.push(line);
+    }
+
+    public sort(): void {
+        this.data.sort((a, b) => a.position - b.position);
+    }
+
+    public getData(): SJLine[] {
+        return this.data;
+    }
+}
+
+export interface SJFile {
+    data: SJData;
+    fileName: string;
+    status: 1 | 0 | -1; // valid | parsing | error
+}
+
 export interface BedLine {
     seqid: string;
     start: number;

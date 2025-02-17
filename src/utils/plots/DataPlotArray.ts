@@ -127,8 +127,7 @@ export class DataPlotArray {
             .attr("y", 0)
             .attr("width", this.dimensions.width)
             .attr("height", this.dimensions.height)
-            .attr("fill", "#f7f7f7")
-            .attr("fill-opacity", 0.75);
+            .attr("fill", "#f7f7f7");
 
         // Add horizontal grid lines
         this.svg.append("g")
@@ -136,7 +135,6 @@ export class DataPlotArray {
             .attr("stroke", "rgba(0, 0, 0, 0.1)")
             .attr("stroke-width", 1)
             .attr("stroke-dasharray", "5,5")
-            .attr("opacity", 0.3)
             .call(d3.axisLeft(this.yScale)
                 .ticks(5)
                 .tickSize(-this.dimensions.width)

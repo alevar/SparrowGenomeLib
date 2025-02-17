@@ -1,4 +1,19 @@
 // src/types/types.ts
+var SJData = class {
+  data;
+  constructor() {
+    this.data = [];
+  }
+  addLine(line2) {
+    this.data.push(line2);
+  }
+  sort() {
+    this.data.sort((a, b) => a.position - b.position);
+  }
+  getData() {
+    return this.data;
+  }
+};
 var BedData = class _BedData {
   data;
   constructor() {
@@ -464,6 +479,50 @@ function parseBed(bedFileName) {
     reader.readAsText(bedFileName);
   });
 }
+function parseSJ(sjFileName) {
+  return new Promise((resolve, reject) => {
+    const sjFile = {
+      data: new SJData(),
+      fileName: sjFileName.name,
+      status: 1
+    };
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const result = e.target?.result;
+        const lines = result.split("\n");
+        lines.forEach((line2) => {
+          if (line2.trim() === "") {
+            return;
+          }
+          const fields = line2.split("	");
+          if (fields.length === 7) {
+            const [seqid, position, A, C, G, T, N] = fields;
+            const sjLine = {
+              seqid,
+              position: parseInt(position),
+              A: parseInt(A),
+              C: parseInt(C),
+              G: parseInt(G),
+              T: parseInt(T),
+              N: parseInt(N)
+            };
+            sjFile.data.addLine(sjLine);
+          } else {
+            throw new Error(`Invalid line format: ${line2}`);
+          }
+        });
+        resolve(sjFile);
+      } catch (error) {
+        reject(new Error("Failed to parse SJ file"));
+      }
+    };
+    reader.onerror = () => {
+      reject(new Error("Failed to read the file"));
+    };
+    reader.readAsText(sjFileName);
+  });
+}
 
 // src/utils/utils/utils.ts
 function adjustIntervals(intervals, start, end, separator) {
@@ -806,12 +865,12 @@ var BarPlot = class {
   }
   plot() {
     if (!this.useProvidedYScale) {
-      this.yScale = d3.scaleLinear().domain([0, this.bedData.maxScore()]).range([0, this.dimensions.height]);
+      this.yScale = d3.scaleLinear().domain([0, this.bedData.maxScore()]).range([this.dimensions.height, 0]);
     }
     this.svg.append("rect").attr("class", "grid-background").attr("x", 0).attr("y", 0).attr("width", this.dimensions.width).attr("height", this.dimensions.height).attr("fill", "#f7f7f7").attr("fill-opacity", 0.75);
     this.svg.append("g").attr("class", "grid").attr("stroke", "rgba(0, 0, 0, 0.1)").attr("stroke-width", 1).attr("stroke-dasharray", "5,5").attr("opacity", 0.3).call(d3.axisLeft(this.yScale).ticks(2).tickSize(-this.dimensions.width).tickFormat(null));
     const minBarWidth = 5;
-    this.svg.selectAll(".bar").data(this.bedData.getData()).enter().append("rect").attr("class", "bar").attr("x", (d) => this.xScale(d.start)).attr("y", (d) => this.yScale(d.score)).attr("width", (d) => Math.min(this.xScale(d.end) - this.xScale(d.start), minBarWidth)).attr("height", (d) => this.dimensions.y + this.dimensions.height - this.yScale(d.score)).attr("fill", this.color);
+    this.svg.selectAll(".bar").data(this.bedData.getData()).enter().append("rect").attr("class", "bar").attr("x", (d) => this.xScale(d.start)).attr("y", (d) => this.yScale(d.score)).attr("width", (d) => Math.min(this.xScale(d.end) - this.xScale(d.start), minBarWidth)).attr("height", (d) => this.dimensions.height - this.yScale(d.score)).attr("fill", this.color);
   }
 };
 
@@ -847,9 +906,7 @@ var LinePlot = class {
     );
     const lineData = this.bedData.getData().flatMap((d) => {
       const points = [];
-      console.log(d);
       for (let pos = d.start; pos < d.end; pos++) {
-        console.log("x: ", pos, this.xScale(pos), "y: ", d.score, this.yScale(d.score));
         points.push({ x: this.xScale(pos), y: this.yScale(d.score) });
       }
       return points;
@@ -860,8 +917,87 @@ var LinePlot = class {
   }
 };
 
-// src/utils/plots/DataPlotArray.ts
+// src/utils/plots/SequenceLogo.ts
 import * as d33 from "d3";
+var SequenceLogo = class {
+  svg;
+  dimensions;
+  sjData;
+  xScale;
+  yScale;
+  useProvidedYScale = false;
+  colors;
+  constructor(svg, data) {
+    this.svg = svg;
+    this.dimensions = data.dimensions;
+    this.sjData = data.sjData;
+    this.xScale = data.xScale;
+    this.colors = data.colors ?? {
+      "A": "#32CD32",
+      // Green
+      "C": "#1E90FF",
+      // Blue
+      "G": "#FFD700",
+      // Gold
+      "T": "#DC143C",
+      // Crimson
+      "N": "#808080"
+      // Gray
+    };
+    this.yScale = data.yScale ?? d33.scaleLinear();
+    this.useProvidedYScale = data.yScale !== void 0;
+  }
+  get_yScale() {
+    return this.yScale;
+  }
+  calculateInformationContent(frequencies) {
+    const totalFreq = Object.values(frequencies).reduce((a, b) => a + b, 0);
+    if (totalFreq === 0) return 0;
+    const normalizedFreqs = Object.values(frequencies).map((f) => f / totalFreq);
+    const entropy = normalizedFreqs.reduce((sum, p) => {
+      if (p > 0) {
+        return sum - p * Math.log2(p);
+      }
+      return sum;
+    }, 0);
+    return 2 - entropy;
+  }
+  plot() {
+    this.svg.selectAll("*").remove();
+    this.svg.append("rect").attr("class", "grid-background").attr("x", 0).attr("y", 0).attr("width", this.dimensions.width).attr("height", this.dimensions.height).attr("fill", "#f7f7f7").attr("fill-opacity", 0.75);
+    if (!this.useProvidedYScale) {
+      this.yScale = d33.scaleLinear().domain([0, 2]).range([this.dimensions.height, 0]);
+    }
+    this.svg.append("g").attr("class", "grid").attr("stroke", "rgba(0, 0, 0, 0.1)").attr("stroke-width", 1).attr("stroke-dasharray", "5,5").attr("opacity", 0.3).call(
+      d33.axisLeft(this.yScale).ticks(4).tickSize(-this.dimensions.width).tickFormat(null)
+    );
+    this.sjData.getData().forEach((pos) => {
+      const x = this.xScale(pos.position);
+      let yOffset = this.dimensions.height;
+      const total = pos.A + pos.C + pos.G + pos.T + pos.N;
+      const frequencies = {
+        "A": pos.A / total,
+        "C": pos.C / total,
+        "G": pos.G / total,
+        "T": pos.T / total,
+        "N": pos.N / total
+      };
+      const informationContent = this.calculateInformationContent(frequencies);
+      const sortedNucs = Object.entries(frequencies).sort(([, a], [, b]) => b - a);
+      sortedNucs.forEach(([nuc, freq]) => {
+        if (freq > 0) {
+          const letterHeight = this.dimensions.height * freq * informationContent;
+          const yPosition = yOffset - letterHeight;
+          this.svg.append("text").attr("x", x).attr("y", yPosition).attr("fill", this.colors[nuc]).attr("text-anchor", "middle").attr("dominant-baseline", "hanging").attr("font-family", "monospace").attr("font-weight", "bold").attr("font-size", `${letterHeight}px`).text(nuc);
+          yOffset -= letterHeight;
+        }
+      });
+    });
+  }
+};
+
+// src/utils/plots/DataPlotArray.ts
+import * as d34 from "d3";
 var DataPlotArray = class {
   svg;
   dimensions;
@@ -889,7 +1025,7 @@ var DataPlotArray = class {
     this.elementWidth = data.elementWidth;
     this.coordinateLength = data.coordinateLength;
     this.maxValue = data.maxValue;
-    this.yScale = d33.scaleLinear();
+    this.yScale = d34.scaleLinear();
     this.raw_xs = [];
     this.spread_elements = [];
     this.build_xs();
@@ -942,9 +1078,9 @@ var DataPlotArray = class {
     return new D3Grid(this.svg, this.dimensions.height, this.dimensions.width, this.gridConfig);
   }
   plot() {
-    this.yScale = d33.scaleLinear().domain([0, this.maxValue]).range([this.dimensions.height, 0]);
-    this.svg.append("rect").attr("class", "grid-background").attr("x", 0).attr("y", 0).attr("width", this.dimensions.width).attr("height", this.dimensions.height).attr("fill", "#f7f7f7").attr("fill-opacity", 0.75);
-    this.svg.append("g").attr("class", "grid").attr("stroke", "rgba(0, 0, 0, 0.1)").attr("stroke-width", 1).attr("stroke-dasharray", "5,5").attr("opacity", 0.3).call(d33.axisLeft(this.yScale).ticks(5).tickSize(-this.dimensions.width).tickFormat(null));
+    this.yScale = d34.scaleLinear().domain([0, this.maxValue]).range([this.dimensions.height, 0]);
+    this.svg.append("rect").attr("class", "grid-background").attr("x", 0).attr("y", 0).attr("width", this.dimensions.width).attr("height", this.dimensions.height).attr("fill", "#f7f7f7");
+    this.svg.append("g").attr("class", "grid").attr("stroke", "rgba(0, 0, 0, 0.1)").attr("stroke-width", 1).attr("stroke-dasharray", "5,5").call(d34.axisLeft(this.yScale).ticks(5).tickSize(-this.dimensions.width).tickFormat(null));
   }
   getElementSVG(index) {
     const elem_idx = this.element_indices[index];
@@ -1004,6 +1140,8 @@ export {
   LinePlot,
   ORFPlot,
   PathogenPlot,
+  SJData,
+  SequenceLogo,
   Transcript,
   Transcriptome,
   TranscriptomePlot,
@@ -1011,6 +1149,7 @@ export {
   TriangleConnector,
   adjustIntervals,
   computeMidpoint,
-  parseBed
+  parseBed,
+  parseSJ
 };
 //# sourceMappingURL=index.mjs.map

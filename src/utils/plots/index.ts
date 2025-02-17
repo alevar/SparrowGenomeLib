@@ -4,5 +4,6 @@ export * from './ORFPlot';
 export * from './TranscriptomePlot';
 export * from './BarPlot';
 export * from './LinePlot';
+export * from './SequenceLogo';
 export * from './DataPlotArray';
-export * from './TriangleConnector'
+export * from './TriangleConnector';
