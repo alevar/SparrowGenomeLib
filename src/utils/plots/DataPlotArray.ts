@@ -121,7 +121,7 @@ export class DataPlotArray {
             .range([this.dimensions.height, 0]);
         
         // Add a background rectangle for the grid
-        this.svg.append("rect")
+        this.svg.insert("rect", ":first-child") // Insert the rect as the first child
             .attr("class", "grid-background")
             .attr("x", 0)
             .attr("y", 0)
@@ -129,14 +129,14 @@ export class DataPlotArray {
             .attr("height", this.dimensions.height)
             .attr("fill", "#f7f7f7")
             .attr("fill-opacity", 0.75);
-
+    
         // Add horizontal grid lines
-        this.svg.append("g")
+        this.svg.insert("g", ":first-child") // Insert the grid lines as the first child
             .attr("class", "grid")
             .attr("stroke", "rgba(0, 0, 0, 0.1)")
             .attr("stroke-width", 1)
             .attr("stroke-dasharray", "5,5")
-            .attr("opacity", 0.3)
+            .attr("opacity", 0.5)
             .call(d3.axisLeft(this.yScale)
                 .ticks(5)
                 .tickSize(-this.dimensions.width)
