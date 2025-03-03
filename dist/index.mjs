@@ -67,6 +67,42 @@ var BedData = class _BedData {
     return new_data;
   }
 };
+var FaiData = class {
+  data;
+  constructor() {
+    this.data = [];
+  }
+  addLine(line2) {
+    this.data.push(line2);
+  }
+  get length() {
+    return this.data.length;
+  }
+  numEntries() {
+    return this.data.length;
+  }
+  getData() {
+    return this.data;
+  }
+};
+var IntegrationsData = class {
+  data;
+  constructor() {
+    this.data = [];
+  }
+  addLine(line2) {
+    this.data.push(line2);
+  }
+  get length() {
+    return this.data.length;
+  }
+  numEntries() {
+    return this.data.length;
+  }
+  getData() {
+    return this.data;
+  }
+};
 
 // src/types/transcriptome.ts
 var GTFObject = class {
@@ -491,7 +527,10 @@ function parseSJ(sjFileName) {
       try {
         const result = e.target?.result;
         const lines = result.split("\n");
-        lines.forEach((line2) => {
+        lines.forEach((line2, idx) => {
+          if (idx === 0) {
+            return;
+          }
           if (line2.trim() === "") {
             return;
           }
@@ -521,6 +560,93 @@ function parseSJ(sjFileName) {
       reject(new Error("Failed to read the file"));
     };
     reader.readAsText(sjFileName);
+  });
+}
+function parseFai(faiFileName) {
+  return new Promise((resolve, reject) => {
+    const faiFile = {
+      data: new FaiData(),
+      fileName: faiFileName.name,
+      status: 1
+    };
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const result = e.target?.result;
+        const lines = result.split("\n");
+        lines.forEach((line2) => {
+          if (line2.trim() === "") {
+            return;
+          }
+          const fields = line2.split("	");
+          if (fields.length === 5) {
+            const [seqid, seq_length, offset, lineBases, lineBytes] = fields;
+            const faiLine = {
+              seqid,
+              seq_length: parseInt(seq_length),
+              offset: parseInt(offset),
+              lineBases: parseInt(lineBases),
+              lineBytes: parseInt(lineBytes)
+            };
+            faiFile.data.addLine(faiLine);
+          } else {
+            throw new Error(`Invalid line format: ${line2}`);
+          }
+        });
+        resolve(faiFile);
+      } catch (error) {
+        reject(new Error("Failed to parse Fasta Index file"));
+      }
+    };
+    reader.onerror = () => {
+      reject(new Error("Failed to read the file"));
+    };
+    reader.readAsText(faiFileName);
+  });
+}
+function parseIntegrations(integrationsFileName) {
+  return new Promise((resolve, reject) => {
+    const integrationsFile = {
+      data: new IntegrationsData(),
+      fileName: integrationsFileName.name,
+      status: 1
+    };
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const result = e.target?.result;
+        const lines = result.split("\n");
+        lines.forEach((line2) => {
+          if (line2.trim() === "") {
+            return;
+          }
+          const fields = line2.split("	");
+          if (fields.length === 8) {
+            const [seqid1, position1, seqid2, position2, score, junction1, junction2, gene1] = fields;
+            const integrationsLine = {
+              seqid1,
+              position1: parseInt(position1),
+              seqid2,
+              position2: parseInt(position2),
+              score: parseInt(score)
+            };
+            if (junction1) integrationsLine.junction1 = junction1;
+            if (junction2) integrationsLine.junction2 = junction2;
+            if (gene1) integrationsLine.gene1 = gene1;
+            integrationsFile.data.addLine(integrationsLine);
+          } else {
+            throw new Error(`Invalid line format: ${line2}`);
+          }
+        });
+        resolve(integrationsFile);
+      } catch (error) {
+        reject(new Error("Failed to parse Integrations file"));
+      }
+    };
+    reader.onerror = () => {
+      reject(new Error("Failed to read the file"));
+    };
+    reader.readAsText(integrationsFileName);
   });
 }
 
@@ -917,7 +1043,7 @@ var LinePlot = class {
   }
 };
 
-// src/utils/plots/SequenceLogo.ts
+// src/utils/plots/SequenceLogo.tsx
 import * as d33 from "d3";
 var SequenceLogo = class {
   svg;
@@ -927,10 +1053,11 @@ var SequenceLogo = class {
   yScale;
   useProvidedYScale = false;
   colors;
+  baseWidth;
   constructor(svg, data) {
     this.svg = svg;
     this.dimensions = data.dimensions;
-    this.sjData = data.sjData;
+    this.sjData = data.sjData.data;
     this.xScale = data.xScale;
     this.colors = data.colors ?? {
       "A": "#32CD32",
@@ -946,49 +1073,56 @@ var SequenceLogo = class {
     };
     this.yScale = data.yScale ?? d33.scaleLinear();
     this.useProvidedYScale = data.yScale !== void 0;
+    const uniquePositions = new Set(this.sjData.map((d) => d.position)).size / 2;
+    this.baseWidth = this.dimensions.width / uniquePositions;
   }
   get_yScale() {
     return this.yScale;
   }
-  calculateInformationContent(frequencies) {
-    const totalFreq = Object.values(frequencies).reduce((a, b) => a + b, 0);
-    if (totalFreq === 0) return 0;
-    const normalizedFreqs = Object.values(frequencies).map((f) => f / totalFreq);
-    const entropy = normalizedFreqs.reduce((sum, p) => {
-      if (p > 0) {
-        return sum - p * Math.log2(p);
-      }
-      return sum;
-    }, 0);
-    return 2 - entropy;
+  getNucleotideCounts(position) {
+    return {
+      "A": position.A,
+      "C": position.C,
+      "G": position.G,
+      "T": position.T,
+      "N": position.N
+    };
+  }
+  calculateRelativeHeights(counts) {
+    const total = Object.values(counts).reduce((a, b) => a + b, 0);
+    if (total === 0) return {};
+    return Object.entries(counts).reduce((acc, [key, value]) => {
+      acc[key] = value / total;
+      return acc;
+    }, {});
+  }
+  createScaledLetter(nuc, x, yPosition, letterHeight) {
+    const letterGroup = this.svg.append("g").attr("transform", `translate(${x}, ${yPosition})`);
+    const scaleY = letterHeight / this.baseWidth;
+    letterGroup.append("text").attr("text-anchor", "bottom").attr("dominant-baseline", "hanging").attr("fill", this.colors[nuc]).attr("font-family", "monospace").attr("font-weight", "bold").attr("font-size", `${this.baseWidth}px`).attr("transform", `scale(1, ${scaleY})`).attr("transform-origin", "0 0").text(nuc);
+  }
+  createBackgroundRect() {
+    this.svg.append("rect").attr("class", "grid-background").attr("x", 0).attr("y", 0).attr("width", this.dimensions.width).attr("height", this.dimensions.height).attr("fill", "none").attr("stroke", "black").attr("stroke-width", "3");
   }
   plot() {
     this.svg.selectAll("*").remove();
-    this.svg.append("rect").attr("class", "grid-background").attr("x", 0).attr("y", 0).attr("width", this.dimensions.width).attr("height", this.dimensions.height).attr("fill", "#f7f7f7").attr("fill-opacity", 0.75);
+    this.createBackgroundRect();
     if (!this.useProvidedYScale) {
-      this.yScale = d33.scaleLinear().domain([0, 2]).range([this.dimensions.height, 0]);
+      this.yScale = d33.scaleLinear().domain([0, 1]).range([this.dimensions.height, 0]);
     }
-    this.svg.append("g").attr("class", "grid").attr("stroke", "rgba(0, 0, 0, 0.1)").attr("stroke-width", 1).attr("stroke-dasharray", "5,5").attr("opacity", 0.3).call(
-      d33.axisLeft(this.yScale).ticks(4).tickSize(-this.dimensions.width).tickFormat(null)
-    );
-    this.sjData.getData().forEach((pos) => {
-      const x = this.xScale(pos.position);
+    const sortedData = [...this.sjData].sort((a, b) => a.position - b.position);
+    const nucleotideOrder = ["A", "C", "G", "T", "N"];
+    sortedData.forEach((position) => {
+      const x = this.xScale(position.position);
+      const counts = this.getNucleotideCounts(position);
+      const relativeHeights = this.calculateRelativeHeights(counts);
       let yOffset = this.dimensions.height;
-      const total = pos.A + pos.C + pos.G + pos.T + pos.N;
-      const frequencies = {
-        "A": pos.A / total,
-        "C": pos.C / total,
-        "G": pos.G / total,
-        "T": pos.T / total,
-        "N": pos.N / total
-      };
-      const informationContent = this.calculateInformationContent(frequencies);
-      const sortedNucs = Object.entries(frequencies).sort(([, a], [, b]) => b - a);
-      sortedNucs.forEach(([nuc, freq]) => {
-        if (freq > 0) {
-          const letterHeight = this.dimensions.height * freq * informationContent;
-          const yPosition = yOffset - letterHeight;
-          this.svg.append("text").attr("x", x).attr("y", yPosition).attr("fill", this.colors[nuc]).attr("text-anchor", "middle").attr("dominant-baseline", "hanging").attr("font-family", "monospace").attr("font-weight", "bold").attr("font-size", `${letterHeight}px`).text(nuc);
+      console.log(yOffset);
+      nucleotideOrder.forEach((nuc) => {
+        if (counts[nuc] > 0) {
+          const frequency = relativeHeights[nuc];
+          const letterHeight = this.dimensions.height * frequency;
+          this.createScaledLetter(nuc, x, yOffset - letterHeight, letterHeight);
           yOffset -= letterHeight;
         }
       });
@@ -1136,7 +1270,9 @@ export {
   D3Grid,
   DataPlotArray,
   Exon,
+  FaiData,
   GenomePlot,
+  IntegrationsData,
   LinePlot,
   ORFPlot,
   PathogenPlot,
@@ -1150,6 +1286,8 @@ export {
   adjustIntervals,
   computeMidpoint,
   parseBed,
+  parseFai,
+  parseIntegrations,
   parseSJ
 };
 //# sourceMappingURL=index.mjs.map

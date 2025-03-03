@@ -55,6 +55,49 @@ interface Dimensions {
     y: number;
     fontSize: number;
 }
+interface FaiLine {
+    seqid: string;
+    seq_length: number;
+    offset: number;
+    lineBases: number;
+    lineBytes: number;
+}
+declare class FaiData {
+    private data;
+    constructor();
+    addLine(line: FaiLine): void;
+    get length(): number;
+    numEntries(): number;
+    getData(): FaiLine[];
+}
+interface FaiFile {
+    data: FaiData;
+    fileName: string;
+    status: 1 | 0 | -1;
+}
+interface IntegrationsLine {
+    seqid1: string;
+    seqid2: string;
+    position1: number;
+    position2: number;
+    score: number;
+    junction1?: string;
+    junction2?: string;
+    gene1?: string;
+}
+declare class IntegrationsData {
+    private data;
+    constructor();
+    addLine(line: IntegrationsLine): void;
+    get length(): number;
+    numEntries(): number;
+    getData(): IntegrationsLine[];
+}
+interface IntegrationsFile {
+    data: IntegrationsData;
+    fileName: string;
+    status: 1 | 0 | -1;
+}
 
 type FeatureType = 'transcript' | 'exon' | 'CDS' | 'other';
 declare class GTFObject {
@@ -161,6 +204,8 @@ declare class D3Grid {
 
 declare function parseBed(bedFileName: File): Promise<BedFile>;
 declare function parseSJ(sjFileName: File): Promise<SJFile>;
+declare function parseFai(faiFileName: File): Promise<FaiFile>;
+declare function parseIntegrations(integrationsFileName: File): Promise<IntegrationsFile>;
 
 declare function adjustIntervals(intervals: Interval[], start: number, end: number, separator: number): Interval[];
 declare function computeMidpoint(a: number, b: number): number;
@@ -349,4 +394,4 @@ declare class TriangleConnector {
     plot(): void;
 }
 
-export { BarPlot, BedData, type BedFile, type BedLine, CDS, D3Grid, DataPlotArray, type Dimensions, Exon, GenomePlot, type GridConfig, type Interval, LinePlot, ORFPlot, type Padding, PathogenPlot, SJData, type SJFile, type SJLine, SequenceLogo, Transcript, Transcriptome, TranscriptomePlot, TranscriptomePlotLabels, TriangleConnector, adjustIntervals, computeMidpoint, parseBed, parseSJ };
+export { BarPlot, BedData, type BedFile, type BedLine, CDS, D3Grid, DataPlotArray, type Dimensions, Exon, FaiData, type FaiFile, type FaiLine, GenomePlot, type GridConfig, IntegrationsData, type IntegrationsFile, type IntegrationsLine, type Interval, LinePlot, ORFPlot, type Padding, PathogenPlot, SJData, type SJFile, type SJLine, SequenceLogo, Transcript, Transcriptome, TranscriptomePlot, TranscriptomePlotLabels, TriangleConnector, adjustIntervals, computeMidpoint, parseBed, parseFai, parseIntegrations, parseSJ };
