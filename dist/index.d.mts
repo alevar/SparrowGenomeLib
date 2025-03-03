@@ -336,6 +336,40 @@ declare class SequenceLogo {
     plot(): void;
 }
 
+interface BoxPlotData {
+    dimensions: Dimensions;
+    bedData: {
+        data: BedData;
+    };
+    xScale: d3$1.ScaleLinear<number, number>;
+    yScale?: d3$1.ScaleLinear<number, number>;
+    boxWidth?: number;
+    colors?: {
+        box: string;
+        median: string;
+        whisker: string;
+        outlier: string;
+    };
+    showOutliers?: boolean;
+}
+declare class BoxPlot {
+    private svg;
+    private dimensions;
+    private bedData;
+    private xScale;
+    private yScale;
+    private useProvidedYScale;
+    private boxWidth;
+    private colors;
+    private showOutliers;
+    constructor(svg: d3$1.Selection<SVGSVGElement, unknown, null, undefined>, data: BoxPlotData);
+    get_yScale(): d3$1.ScaleLinear<number, number>;
+    private calculateBoxStats;
+    private createBackgroundRect;
+    private drawBoxPlot;
+    plot(): void;
+}
+
 interface DataPlotArrayData {
     svg: d3$1.Selection<SVGSVGElement, unknown, null, undefined>;
     dimensions: Dimensions;
@@ -394,4 +428,4 @@ declare class TriangleConnector {
     plot(): void;
 }
 
-export { BarPlot, BedData, type BedFile, type BedLine, CDS, D3Grid, DataPlotArray, type Dimensions, Exon, FaiData, type FaiFile, type FaiLine, GenomePlot, type GridConfig, IntegrationsData, type IntegrationsFile, type IntegrationsLine, type Interval, LinePlot, ORFPlot, type Padding, PathogenPlot, SJData, type SJFile, type SJLine, SequenceLogo, Transcript, Transcriptome, TranscriptomePlot, TranscriptomePlotLabels, TriangleConnector, adjustIntervals, computeMidpoint, parseBed, parseFai, parseIntegrations, parseSJ };
+export { BarPlot, BedData, type BedFile, type BedLine, BoxPlot, CDS, D3Grid, DataPlotArray, type Dimensions, Exon, FaiData, type FaiFile, type FaiLine, GenomePlot, type GridConfig, IntegrationsData, type IntegrationsFile, type IntegrationsLine, type Interval, LinePlot, ORFPlot, type Padding, PathogenPlot, SJData, type SJFile, type SJLine, SequenceLogo, Transcript, Transcriptome, TranscriptomePlot, TranscriptomePlotLabels, TriangleConnector, adjustIntervals, computeMidpoint, parseBed, parseFai, parseIntegrations, parseSJ };

@@ -1130,8 +1130,123 @@ var SequenceLogo = class {
   }
 };
 
-// src/utils/plots/DataPlotArray.ts
+// src/utils/plots/BoxPlot.ts
 import * as d34 from "d3";
+var BoxPlot = class {
+  svg;
+  dimensions;
+  bedData;
+  xScale;
+  yScale;
+  useProvidedYScale = false;
+  boxWidth;
+  colors;
+  showOutliers;
+  // Store the setting for showing outliers
+  constructor(svg, data) {
+    this.svg = svg;
+    this.dimensions = data.dimensions;
+    this.bedData = data.bedData.data;
+    this.xScale = data.xScale;
+    this.colors = data.colors ?? {
+      box: "#69b3a2",
+      median: "#000000",
+      whisker: "#000000",
+      outlier: "#e8504c"
+    };
+    this.yScale = data.yScale ?? d34.scaleLinear();
+    this.useProvidedYScale = data.yScale !== void 0;
+    this.showOutliers = data.showOutliers ?? true;
+    const uniquePositions = /* @__PURE__ */ new Set();
+    this.bedData.getData().forEach((d) => {
+      for (let pos = d.start; pos < d.end; pos++) {
+        uniquePositions.add(pos);
+      }
+    });
+    const numPositions = uniquePositions.size;
+    this.boxWidth = data.boxWidth ?? this.dimensions.width / (numPositions * 2);
+  }
+  get_yScale() {
+    return this.yScale;
+  }
+  calculateBoxStats(position) {
+    const linesAtPosition = this.bedData.getPos(position);
+    if (linesAtPosition.length === 0) {
+      return null;
+    }
+    const scores = linesAtPosition.map((line2) => line2.score);
+    if (scores.length === 0) {
+      return null;
+    }
+    scores.sort((a, b) => a - b);
+    const min2 = d34.min(scores) ?? 0;
+    const max2 = d34.max(scores) ?? 0;
+    const q1 = d34.quantile(scores, 0.25) ?? min2;
+    const median = d34.quantile(scores, 0.5) ?? (min2 + max2) / 2;
+    const q3 = d34.quantile(scores, 0.75) ?? max2;
+    const iqr = q3 - q1;
+    const lowerFence = q1 - 1.5 * iqr;
+    const upperFence = q3 + 1.5 * iqr;
+    const outliers = scores.filter((score) => score < lowerFence || score > upperFence);
+    const filteredScores = scores.filter((score) => score >= lowerFence && score <= upperFence);
+    const adjustedMin = filteredScores.length > 0 ? d34.min(filteredScores) ?? min2 : min2;
+    const adjustedMax = filteredScores.length > 0 ? d34.max(filteredScores) ?? max2 : max2;
+    return {
+      min: adjustedMin,
+      q1,
+      median,
+      q3,
+      max: adjustedMax,
+      outliers,
+      position
+    };
+  }
+  createBackgroundRect() {
+    this.svg.append("rect").attr("class", "grid-background").attr("x", 0).attr("y", 0).attr("width", this.dimensions.width).attr("height", this.dimensions.height).attr("fill", "none").attr("stroke", "black").attr("stroke-width", "3");
+  }
+  drawBoxPlot(stats) {
+    const x = this.xScale(stats.position);
+    const center = x;
+    const width = this.boxWidth;
+    this.svg.append("rect").attr("x", center - width / 2).attr("y", this.yScale(stats.q3)).attr("width", width).attr("height", this.yScale(stats.q1) - this.yScale(stats.q3)).attr("fill", this.colors.box).attr("stroke", "black").attr("stroke-width", 1);
+    this.svg.append("line").attr("x1", center - width / 2).attr("x2", center + width / 2).attr("y1", this.yScale(stats.median)).attr("y2", this.yScale(stats.median)).attr("stroke", this.colors.median).attr("stroke-width", 2);
+    this.svg.append("line").attr("x1", center).attr("x2", center).attr("y1", this.yScale(stats.q1)).attr("y2", this.yScale(stats.min)).attr("stroke", this.colors.whisker).attr("stroke-width", 1);
+    this.svg.append("line").attr("x1", center - width / 4).attr("x2", center + width / 4).attr("y1", this.yScale(stats.min)).attr("y2", this.yScale(stats.min)).attr("stroke", this.colors.whisker).attr("stroke-width", 1);
+    this.svg.append("line").attr("x1", center).attr("x2", center).attr("y1", this.yScale(stats.q3)).attr("y2", this.yScale(stats.max)).attr("stroke", this.colors.whisker).attr("stroke-width", 1);
+    this.svg.append("line").attr("x1", center - width / 4).attr("x2", center + width / 4).attr("y1", this.yScale(stats.max)).attr("y2", this.yScale(stats.max)).attr("stroke", this.colors.whisker).attr("stroke-width", 1);
+    if (this.showOutliers) {
+      stats.outliers.forEach((outlier) => {
+        this.svg.append("circle").attr("cx", center).attr("cy", this.yScale(outlier)).attr("r", 3).attr("fill", this.colors.outlier);
+      });
+    }
+  }
+  plot() {
+    this.svg.selectAll("*").remove();
+    this.createBackgroundRect();
+    if (!this.useProvidedYScale) {
+      const allScores = this.bedData.getData().map((d) => d.score);
+      const minScore = d34.min(allScores) ?? 0;
+      const maxScore = d34.max(allScores) ?? 1;
+      const padding = (maxScore - minScore) * 0.1;
+      this.yScale = d34.scaleLinear().domain([minScore - padding, maxScore + padding]).range([this.dimensions.height, 0]);
+    }
+    const positions = /* @__PURE__ */ new Set();
+    this.bedData.getData().forEach((line2) => {
+      for (let pos = line2.start; pos < line2.end; pos++) {
+        positions.add(pos);
+      }
+    });
+    Array.from(positions).sort((a, b) => a - b).forEach((position) => {
+      const stats = this.calculateBoxStats(position);
+      if (stats) {
+        this.drawBoxPlot(stats);
+      }
+    });
+  }
+};
+
+// src/utils/plots/DataPlotArray.ts
+import * as d35 from "d3";
 var DataPlotArray = class {
   svg;
   dimensions;
@@ -1159,7 +1274,7 @@ var DataPlotArray = class {
     this.elementWidth = data.elementWidth;
     this.coordinateLength = data.coordinateLength;
     this.maxValue = data.maxValue;
-    this.yScale = d34.scaleLinear();
+    this.yScale = d35.scaleLinear();
     this.raw_xs = [];
     this.spread_elements = [];
     this.build_xs();
@@ -1212,9 +1327,9 @@ var DataPlotArray = class {
     return new D3Grid(this.svg, this.dimensions.height, this.dimensions.width, this.gridConfig);
   }
   plot() {
-    this.yScale = d34.scaleLinear().domain([0, this.maxValue]).range([this.dimensions.height, 0]);
+    this.yScale = d35.scaleLinear().domain([0, this.maxValue]).range([this.dimensions.height, 0]);
     this.svg.insert("rect", ":first-child").attr("class", "grid-background").attr("x", 0).attr("y", 0).attr("width", this.dimensions.width).attr("height", this.dimensions.height).attr("fill", "#f7f7f7").attr("fill-opacity", 0.75);
-    this.svg.insert("g", ":first-child").attr("class", "grid").attr("stroke", "rgba(0, 0, 0, 0.1)").attr("stroke-width", 1).attr("stroke-dasharray", "5,5").attr("opacity", 0.5).call(d34.axisLeft(this.yScale).ticks(5).tickSize(-this.dimensions.width).tickFormat(null));
+    this.svg.insert("g", ":first-child").attr("class", "grid").attr("stroke", "rgba(0, 0, 0, 0.1)").attr("stroke-width", 1).attr("stroke-dasharray", "5,5").attr("opacity", 0.5).call(d35.axisLeft(this.yScale).ticks(5).tickSize(-this.dimensions.width).tickFormat(null));
   }
   getElementSVG(index) {
     const elem_idx = this.element_indices[index];
@@ -1266,6 +1381,7 @@ var TriangleConnector = class {
 export {
   BarPlot,
   BedData,
+  BoxPlot,
   CDS,
   D3Grid,
   DataPlotArray,

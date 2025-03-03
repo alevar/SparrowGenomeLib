@@ -5,5 +5,6 @@ export * from './TranscriptomePlot';
 export * from './BarPlot';
 export * from './LinePlot';
 export * from './SequenceLogo';
+export * from './BoxPlot';
 export * from './DataPlotArray';
 export * from './TriangleConnector';
