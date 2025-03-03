@@ -125,3 +125,80 @@ export interface Dimensions {
     y: number;
     fontSize: number;
 }
+
+
+export interface FaiLine {
+    seqid: string;
+    seq_length: number;
+    offset: number;
+    lineBases: number;
+    lineBytes: number;
+}
+export class FaiData {
+    private data: FaiLine[];
+
+    constructor() {
+        this.data = [];
+    }
+
+    public addLine(line: FaiLine): void {
+        this.data.push(line);
+    }
+
+    public get length(): number {
+        return this.data.length;
+    }
+
+    public numEntries(): number {
+        return this.data.length;
+    }
+
+    public getData(): FaiLine[] {
+        return this.data;
+    }
+}
+
+export interface FaiFile {
+    data: FaiData;
+    fileName: string;
+    status: 1 | 0 | -1; // valid | parsing | error
+}
+
+export interface IntegrationsLine {
+    seqid1: string;
+    seqid2: string;
+    position1: number;
+    position2: number;
+    score: number;
+    junction1?: string;
+    junction2?: string;
+    gene1?: string;
+}
+export class IntegrationsData {
+    private data: IntegrationsLine[];
+
+    constructor() {
+        this.data = [];
+    }
+
+    public addLine(line: IntegrationsLine): void {
+        this.data.push(line);
+    }
+
+    public get length(): number {
+        return this.data.length;
+    }
+
+    public numEntries(): number {
+        return this.data.length;
+    }
+
+    public getData(): IntegrationsLine[] {
+        return this.data;
+    }
+}
+export interface IntegrationsFile {
+    data: IntegrationsData;
+    fileName: string;
+    status: 1 | 0 | -1; // valid | parsing | error
+}
