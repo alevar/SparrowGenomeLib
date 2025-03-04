@@ -199,6 +199,19 @@ var Transcriptome = class _Transcriptome {
       this.parseGTFFile(gtfFile);
     }
   }
+  static fromExisting(existing) {
+    const newTranscriptome = new _Transcriptome();
+    newTranscriptome.seqid = existing.seqid;
+    newTranscriptome.strand = existing.strand;
+    newTranscriptome.start = existing.start;
+    newTranscriptome.end = existing.end;
+    newTranscriptome.genome_length = existing.genome_length;
+    newTranscriptome.transcripts = [...existing.transcripts];
+    newTranscriptome.otherFeatures = [...existing.otherFeatures];
+    newTranscriptome.transcriptsByGene = new Map(existing.transcriptsByGene);
+    newTranscriptome.transcriptsById = new Map(existing.transcriptsById);
+    return newTranscriptome;
+  }
   static async create(file) {
     const instance = new _Transcriptome();
     await instance.parseGTFFile(file);

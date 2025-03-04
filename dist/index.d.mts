@@ -139,6 +139,7 @@ declare class Transcriptome {
     transcriptsById: Map<string, number>;
     genome_length: number;
     constructor(gtfFile?: File);
+    static fromExisting(existing: Transcriptome): Transcriptome;
     static create(file: File): Promise<Transcriptome>;
     private parseGTFFile;
     private parseAttributes;

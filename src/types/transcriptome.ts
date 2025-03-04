@@ -114,6 +114,25 @@ class Transcriptome {
         }
     }
 
+    static fromExisting(existing: Transcriptome): Transcriptome {
+        const newTranscriptome = new Transcriptome();
+        
+        // Copy properties
+        newTranscriptome.seqid = existing.seqid;
+        newTranscriptome.strand = existing.strand;
+        newTranscriptome.start = existing.start;
+        newTranscriptome.end = existing.end;
+        newTranscriptome.genome_length = existing.genome_length;
+        
+        // Deep copy collections
+        newTranscriptome.transcripts = [...existing.transcripts];
+        newTranscriptome.otherFeatures = [...existing.otherFeatures];
+        newTranscriptome.transcriptsByGene = new Map(existing.transcriptsByGene);
+        newTranscriptome.transcriptsById = new Map(existing.transcriptsById);
+        
+        return newTranscriptome;
+    }
+
     static async create(file: File): Promise<Transcriptome> {
         const instance = new Transcriptome();
         await instance.parseGTFFile(file);
