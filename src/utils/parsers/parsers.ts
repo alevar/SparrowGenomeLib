@@ -159,12 +159,12 @@ export function parseIntegrations(integrationsFileName: File): Promise<Integrati
                     }
                     const fields = line.split('\t');
                     if (fields.length === 8) {
-                        const [seqid1, position1, seqid2, position2, score, junction1, junction2, gene1] = fields;
+                        const [seqid1, seqid2, position1, position2, score, junction1, junction2, gene1] = fields;
 
                         const integrationsLine: IntegrationsLine = {
                             seqid1: seqid1,
-                            position1: parseInt(position1),
                             seqid2: seqid2,
+                            position1: parseInt(position1),
                             position2: parseInt(position2),
                             score: parseInt(score),
                         };
