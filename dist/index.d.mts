@@ -280,6 +280,7 @@ interface BarPlotData {
     bedData: BedData;
     color: string;
     yScale?: d3$1.ScaleLinear<number, number>;
+    barWidth?: number;
 }
 declare class BarPlot {
     private svg;
@@ -289,6 +290,7 @@ declare class BarPlot {
     private yScale;
     private useProvidedYScale;
     private color;
+    private barWidth;
     constructor(svg: d3$1.Selection<SVGSVGElement, unknown, null, undefined>, data: BarPlotData);
     get_yScale(): d3$1.ScaleLinear<number, number>;
     plot(): void;

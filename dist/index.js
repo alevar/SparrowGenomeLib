@@ -1051,6 +1051,8 @@ var BarPlot = class {
   yScale;
   useProvidedYScale = false;
   color;
+  barWidth;
+  // New property to store bar width
   constructor(svg, data) {
     this.svg = svg;
     this.dimensions = data.dimensions;
@@ -1059,6 +1061,7 @@ var BarPlot = class {
     this.color = data.color;
     this.yScale = data.yScale ?? d3.scaleLinear();
     this.useProvidedYScale = data.yScale !== void 0;
+    this.barWidth = data.barWidth ?? 5;
   }
   get_yScale() {
     return this.yScale;
@@ -1069,8 +1072,11 @@ var BarPlot = class {
     }
     this.svg.append("rect").attr("class", "grid-background").attr("x", 0).attr("y", 0).attr("width", this.dimensions.width).attr("height", this.dimensions.height).attr("fill", "#f7f7f7").attr("fill-opacity", 0.75);
     this.svg.append("g").attr("class", "grid").attr("stroke", "rgba(0, 0, 0, 0.1)").attr("stroke-width", 1).attr("stroke-dasharray", "5,5").attr("opacity", 0.3).call(d3.axisLeft(this.yScale).ticks(2).tickSize(-this.dimensions.width).tickFormat(null));
-    const minBarWidth = 5;
-    this.svg.selectAll(".bar").data(this.bedData.getData()).enter().append("rect").attr("class", "bar").attr("x", (d) => this.xScale(d.start)).attr("y", (d) => this.yScale(d.score)).attr("width", (d) => Math.min(this.xScale(d.end) - this.xScale(d.start), minBarWidth)).attr("height", (d) => this.dimensions.height - this.yScale(d.score)).attr("fill", this.color);
+    this.svg.selectAll(".bar").data(this.bedData.getData()).enter().append("rect").attr("class", "bar").attr("x", (d) => {
+      const barStart = this.xScale(d.start);
+      const totalWidth = this.xScale(d.end) - this.xScale(d.start);
+      return barStart + (totalWidth - this.barWidth) / 2;
+    }).attr("y", (d) => this.yScale(d.score)).attr("width", this.barWidth).attr("height", (d) => this.dimensions.height - this.yScale(d.score)).attr("fill", this.color);
   }
 };
 
