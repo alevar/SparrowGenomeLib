@@ -43,6 +43,15 @@ export interface BedLine {
     strand: string;
 }
 
+export interface BedLine {
+    seqid: string;
+    start: number;
+    end: number;
+    name: string;
+    score: number;
+    strand: string;
+}
+
 export class BedData {
     private data: BedLine[];
 
@@ -108,6 +117,106 @@ export class BedData {
         }
         return new_data;
     }
+
+    public smooth(windowSize: number): BedData {
+        // First explode the data to get individual positions
+        const explodedData = this.explode();
+        const explodedLines = explodedData.getData();
+        
+        // Sort the exploded data by position
+        explodedLines.sort((a, b) => {
+          // First sort by seqid
+          if (a.seqid !== b.seqid) {
+            return a.seqid.localeCompare(b.seqid);
+          }
+          // Then by strand
+          if (a.strand !== b.strand) {
+            return a.strand.localeCompare(b.strand);
+          }
+          // Finally by start position
+          return a.start - b.start;
+        });
+        
+        // Initialize result
+        const smoothedData = new BedData();
+        
+        // If there's no data, return empty result
+        if (explodedLines.length === 0) {
+          return smoothedData;
+        }
+        
+        // Group data by seqid+strand combination
+        const seqidStrandGroups = new Map<string, BedLine[]>();
+        
+        // Create groups
+        explodedLines.forEach(line => {
+          const key = `${line.seqid}|${line.strand}`;
+          if (!seqidStrandGroups.has(key)) {
+            seqidStrandGroups.set(key, []);
+          }
+          seqidStrandGroups.get(key)!.push(line);
+        });
+        
+        // Process each seqid+strand group separately
+        seqidStrandGroups.forEach((linesInGroup, key) => {
+          // Get seqid and strand from the key
+          const [seqid, strand] = key.split('|');
+          
+          // Get min and max positions for this group
+          const minPos = Math.min(...linesInGroup.map(d => d.start));
+          const maxPos = Math.max(...linesInGroup.map(d => d.end));
+          
+          // Group data by position within this seqid+strand group
+          const positionGroups = new Map<number, BedLine[]>();
+          
+          // Organize data by position
+          linesInGroup.forEach(line => {
+            if (!positionGroups.has(line.start)) {
+              positionGroups.set(line.start, []);
+            }
+            positionGroups.get(line.start)!.push(line);
+          });
+          
+          // Process each window position for this seqid+strand group
+          for (let pos = minPos; pos < maxPos - windowSize + 1; pos++) {
+            // Calculate the window boundaries
+            const windowEnd = pos + windowSize;
+            
+            // Collect all scores within the window
+            const scores: number[] = [];
+            
+            // Gather data for all positions in the window
+            for (let i = pos; i < windowEnd; i++) {
+              if (positionGroups.has(i)) {
+                const linesAtPos = positionGroups.get(i)!;
+                
+                // Add all scores at this position
+                linesAtPos.forEach(line => {
+                  scores.push(line.score);
+                });
+              }
+            }
+            
+            // Skip if no data in window
+            if (scores.length === 0) continue;
+            
+            // Calculate the mean score
+            const meanScore = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+            
+            // Create a new smoothed line
+            smoothedData.addLine({
+              seqid: seqid,
+              start: pos,
+              end: windowEnd,
+              score: meanScore,
+              name: `smoothed_${seqid}_${strand}_${pos}_${windowEnd}`,
+              strand: strand
+            });
+          }
+        });
+        
+        return smoothedData;
+      }
 }
 
 export interface BedFile {
