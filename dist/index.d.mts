@@ -29,6 +29,14 @@ interface BedLine {
     score: number;
     strand: string;
 }
+interface BedLine {
+    seqid: string;
+    start: number;
+    end: number;
+    name: string;
+    score: number;
+    strand: string;
+}
 declare class BedData {
     private data;
     constructor();
@@ -41,6 +49,7 @@ declare class BedData {
     getPos(pos: number): BedLine[];
     getRange(start: number, end: number): BedData;
     explode(): BedData;
+    smooth(windowSize: number): BedData;
 }
 interface BedFile {
     data: BedData;

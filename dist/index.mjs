@@ -66,6 +66,66 @@ var BedData = class _BedData {
     }
     return new_data;
   }
+  smooth(windowSize) {
+    const explodedData = this.explode();
+    const explodedLines = explodedData.getData();
+    explodedLines.sort((a, b) => {
+      if (a.seqid !== b.seqid) {
+        return a.seqid.localeCompare(b.seqid);
+      }
+      if (a.strand !== b.strand) {
+        return a.strand.localeCompare(b.strand);
+      }
+      return a.start - b.start;
+    });
+    const smoothedData = new _BedData();
+    if (explodedLines.length === 0) {
+      return smoothedData;
+    }
+    const seqidStrandGroups = /* @__PURE__ */ new Map();
+    explodedLines.forEach((line2) => {
+      const key = `${line2.seqid}|${line2.strand}`;
+      if (!seqidStrandGroups.has(key)) {
+        seqidStrandGroups.set(key, []);
+      }
+      seqidStrandGroups.get(key).push(line2);
+    });
+    seqidStrandGroups.forEach((linesInGroup, key) => {
+      const [seqid, strand] = key.split("|");
+      const minPos = Math.min(...linesInGroup.map((d) => d.start));
+      const maxPos = Math.max(...linesInGroup.map((d) => d.end));
+      const positionGroups = /* @__PURE__ */ new Map();
+      linesInGroup.forEach((line2) => {
+        if (!positionGroups.has(line2.start)) {
+          positionGroups.set(line2.start, []);
+        }
+        positionGroups.get(line2.start).push(line2);
+      });
+      for (let pos = minPos; pos < maxPos - windowSize + 1; pos++) {
+        const windowEnd = pos + windowSize;
+        const scores = [];
+        for (let i = pos; i < windowEnd; i++) {
+          if (positionGroups.has(i)) {
+            const linesAtPos = positionGroups.get(i);
+            linesAtPos.forEach((line2) => {
+              scores.push(line2.score);
+            });
+          }
+        }
+        if (scores.length === 0) continue;
+        const meanScore = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+        smoothedData.addLine({
+          seqid,
+          start: pos,
+          end: windowEnd,
+          score: meanScore,
+          name: `smoothed_${seqid}_${strand}_${pos}_${windowEnd}`,
+          strand
+        });
+      }
+    });
+    return smoothedData;
+  }
 };
 var FaiData = class {
   data;
