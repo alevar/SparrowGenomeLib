@@ -28,8 +28,8 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
 // src/index.ts
-var index_exports = {};
-__export(index_exports, {
+var src_exports = {};
+__export(src_exports, {
   BarPlot: () => BarPlot,
   BedData: () => BedData,
   BoxPlot: () => BoxPlot,
@@ -57,7 +57,7 @@ __export(index_exports, {
   parseIntegrations: () => parseIntegrations,
   parseSJ: () => parseSJ
 });
-module.exports = __toCommonJS(index_exports);
+module.exports = __toCommonJS(src_exports);
 
 // src/types/types.ts
 var SJData = class {
@@ -1341,9 +1341,6 @@ var BoxPlot = class {
       position
     };
   }
-  createBackgroundRect() {
-    this.svg.append("rect").attr("class", "grid-background").attr("x", 0).attr("y", 0).attr("width", this.dimensions.width).attr("height", this.dimensions.height).attr("fill", "none").attr("stroke", "black").attr("stroke-width", "3");
-  }
   drawBoxPlot(stats) {
     const x = this.xScale(stats.position);
     const center = x;
@@ -1362,7 +1359,6 @@ var BoxPlot = class {
   }
   plot() {
     this.svg.selectAll("*").remove();
-    this.createBackgroundRect();
     if (!this.useProvidedYScale) {
       const allScores = this.bedData.getData().map((d) => d.score);
       const minScore = d34.min(allScores) ?? 0;

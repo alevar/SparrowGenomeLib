@@ -377,7 +377,6 @@ declare class BoxPlot {
     constructor(svg: d3$1.Selection<SVGSVGElement, unknown, null, undefined>, data: BoxPlotData);
     get_yScale(): d3$1.ScaleLinear<number, number>;
     private calculateBoxStats;
-    private createBackgroundRect;
     private drawBoxPlot;
     plot(): void;
 }

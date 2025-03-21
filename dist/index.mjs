@@ -1280,9 +1280,6 @@ var BoxPlot = class {
       position
     };
   }
-  createBackgroundRect() {
-    this.svg.append("rect").attr("class", "grid-background").attr("x", 0).attr("y", 0).attr("width", this.dimensions.width).attr("height", this.dimensions.height).attr("fill", "none").attr("stroke", "black").attr("stroke-width", "3");
-  }
   drawBoxPlot(stats) {
     const x = this.xScale(stats.position);
     const center = x;
@@ -1301,7 +1298,6 @@ var BoxPlot = class {
   }
   plot() {
     this.svg.selectAll("*").remove();
-    this.createBackgroundRect();
     if (!this.useProvidedYScale) {
       const allScores = this.bedData.getData().map((d) => d.score);
       const minScore = d34.min(allScores) ?? 0;
