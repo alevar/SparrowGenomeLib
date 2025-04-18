@@ -234,7 +234,13 @@ var GTFObject = class {
   end;
   attributes;
   transcript_id;
-  constructor(seqid, strand, start, end, type, attributes, transcript_id) {
+  score;
+  // Added missing field: score from GTF format
+  source;
+  // Added missing field: source from GTF format
+  phase;
+  // Added missing field: phase/frame from GTF format
+  constructor(seqid, strand, start, end, type, attributes, transcript_id, score, source, phase) {
     if (start < 0 || end < 0 || start > end) {
       throw new Error("Invalid interval");
     }
@@ -245,6 +251,9 @@ var GTFObject = class {
     this.type = type;
     this.attributes = attributes;
     this.transcript_id = transcript_id;
+    this.score = score;
+    this.source = source;
+    this.phase = phase;
   }
   getAttribute(key) {
     return this.attributes[key];
@@ -255,25 +264,56 @@ var GTFObject = class {
   getEnd() {
     return this.end;
   }
+  getStrand() {
+    return this.strand;
+  }
+  getLength() {
+    return this.end - this.start + 1;
+  }
+  getSeqId() {
+    return this.seqid;
+  }
+  getType() {
+    return this.type;
+  }
 };
 var Exon = class extends GTFObject {
+  getExonNumber() {
+    const exonNumber = this.attributes["exon_number"];
+    return exonNumber ? parseInt(exonNumber) : 0;
+  }
 };
 var CDS = class extends GTFObject {
+  getPhase() {
+    return this.phase ? parseInt(this.phase) : 0;
+  }
 };
 var Object2 = class extends GTFObject {
   originalType;
-  constructor(seqid, strand, start, end, type, attributes, originalType) {
-    super(seqid, strand, start, end, type, attributes);
+  constructor(seqid, strand, start, end, type, attributes, originalType, score, source, phase) {
+    super(seqid, strand, start, end, type, attributes, void 0, score, source, phase);
     this.originalType = originalType;
+  }
+  getOriginalType() {
+    return this.originalType;
   }
 };
 var Transcript = class extends GTFObject {
   exons = [];
   cdsFeatures = [];
   gene_id;
+  gene_name;
+  // Added missing field
+  transcript_name;
+  // Added missing field
+  transcript_biotype;
+  // Added missing field
   constructor(seqid, strand, start, end, attributes, transcript_id, gene_id) {
     super(seqid, strand, start, end, "transcript", attributes, transcript_id);
     this.gene_id = gene_id;
+    this.gene_name = attributes["gene_name"];
+    this.transcript_name = attributes["transcript_name"];
+    this.transcript_biotype = attributes["transcript_biotype"];
   }
   addExon(exon) {
     if (exon.seqid !== this.seqid || exon.strand !== this.strand) {
@@ -304,6 +344,27 @@ var Transcript = class extends GTFObject {
   getTranscriptId() {
     return this.transcript_id || "";
   }
+  getGeneId() {
+    return this.gene_id;
+  }
+  getGeneName() {
+    return this.gene_name || this.gene_id;
+  }
+  getTranscriptName() {
+    return this.transcript_name || this.transcript_id || "";
+  }
+  getBiotype() {
+    return this.transcript_biotype || "";
+  }
+  getCodingLength() {
+    return this.cdsFeatures.reduce((sum, cds) => sum + cds.getLength(), 0);
+  }
+  getTotalExonLength() {
+    return this.exons.reduce((sum, exon) => sum + exon.getLength(), 0);
+  }
+  hasUTR() {
+    return this.getCodingLength() > 0 && this.getCodingLength() < this.getTotalExonLength();
+  }
 };
 var Transcriptome = class _Transcriptome {
   seqid;
@@ -314,10 +375,17 @@ var Transcriptome = class _Transcriptome {
   otherFeatures = [];
   transcriptsByGene = /* @__PURE__ */ new Map();
   transcriptsById = /* @__PURE__ */ new Map();
+  geneNames = /* @__PURE__ */ new Map();
+  // Added missing field: map of gene_id to gene_name
   genome_length = 0;
+  source_file;
+  // Added missing field: name of the source file
+  assembly;
+  // Added missing field: genome assembly information
   constructor(gtfFile) {
     if (gtfFile) {
       this.parseGTFFile(gtfFile);
+      this.source_file = gtfFile.name;
     }
   }
   static fromExisting(existing) {
@@ -327,15 +395,19 @@ var Transcriptome = class _Transcriptome {
     newTranscriptome.start = existing.start;
     newTranscriptome.end = existing.end;
     newTranscriptome.genome_length = existing.genome_length;
+    newTranscriptome.source_file = existing.source_file;
+    newTranscriptome.assembly = existing.assembly;
     newTranscriptome.transcripts = [...existing.transcripts];
     newTranscriptome.otherFeatures = [...existing.otherFeatures];
     newTranscriptome.transcriptsByGene = new Map(existing.transcriptsByGene);
     newTranscriptome.transcriptsById = new Map(existing.transcriptsById);
+    newTranscriptome.geneNames = new Map(existing.geneNames);
     return newTranscriptome;
   }
   static async create(file) {
     const instance = new _Transcriptome();
     await instance.parseGTFFile(file);
+    instance.source_file = file.name;
     return instance;
   }
   parseGTFFile(gtfFile) {
@@ -347,7 +419,7 @@ var Transcriptome = class _Transcriptome {
           const lines = result.split("\n");
           for (const line2 of lines) {
             if (line2.startsWith("#") || !line2.trim()) continue;
-            const [seqid, , type, startStr, endStr, , strand, , attrStr] = line2.split("	");
+            const [seqid, source, type, startStr, endStr, score, strand, phase, attrStr] = line2.split("	");
             const start = parseInt(startStr);
             const end = parseInt(endStr);
             const attributes = this.parseAttributes(attrStr);
@@ -365,13 +437,16 @@ var Transcriptome = class _Transcriptome {
             if (this.end === void 0 || this.end < parseInt(endStr)) {
               this.end = parseInt(endStr);
             }
+            if (attributes["gene_id"] && attributes["gene_name"]) {
+              this.geneNames.set(attributes["gene_id"], attributes["gene_name"]);
+            }
             switch (type) {
               case "transcript":
               case "exon":
               case "CDS":
                 break;
               default:
-                const otherObject = new Object2(seqid, strand, start, end, "other", attributes, type);
+                const otherObject = new Object2(seqid, strand, start, end, "other", attributes, type, score, source, phase);
                 this.otherFeatures.push(otherObject);
                 continue;
             }
@@ -394,7 +469,7 @@ var Transcriptome = class _Transcriptome {
                 if (tx_idx === void 0) {
                   throw new Error(`Exon references unknown transcript_id ${transcript_id}`);
                 }
-                const exon = new Exon(seqid, strand, start, end, "exon", attributes, transcript_id);
+                const exon = new Exon(seqid, strand, start, end, "exon", attributes, transcript_id, score, source, phase);
                 this.transcripts[tx_idx].addExon(exon);
                 break;
               case "CDS":
@@ -402,7 +477,7 @@ var Transcriptome = class _Transcriptome {
                 if (tx_idx === void 0) {
                   throw new Error(`CDS references unknown transcript_id ${transcript_id}`);
                 }
-                const cds = new CDS(seqid, strand, start, end, "CDS", attributes, transcript_id);
+                const cds = new CDS(seqid, strand, start, end, "CDS", attributes, transcript_id, score, source, phase);
                 this.transcripts[tx_idx].addCDS(cds);
                 break;
               default:
@@ -446,11 +521,45 @@ var Transcriptome = class _Transcriptome {
     }
     return this.transcripts[idx];
   }
+  getGeneName(gene_id) {
+    return this.geneNames.get(gene_id) || gene_id;
+  }
+  getGeneIds() {
+    return Array.from(this.transcriptsByGene.keys());
+  }
   getStart() {
     return this.start || 0;
   }
   getEnd() {
     return this.end || 0;
+  }
+  getStrand() {
+    return this.strand || "";
+  }
+  getSeqId() {
+    return this.seqid || "";
+  }
+  // Added method to get genome/chromosome size
+  getGenomeLength() {
+    if (this.genome_length === 0 && this.start !== void 0 && this.end !== void 0) {
+      return this.end - this.start + 1;
+    }
+    return this.genome_length;
+  }
+  // Added method to get summary statistics
+  getSummaryStats() {
+    const geneCount = this.transcriptsByGene.size;
+    const transcriptCount = this.numTranscripts();
+    const exonCount = this.transcripts.reduce((sum, tx) => sum + tx.exons.length, 0);
+    return {
+      geneCount,
+      transcriptCount,
+      exonCount,
+      seqid: this.seqid,
+      strand: this.strand,
+      start: this.start,
+      end: this.end
+    };
   }
   // iterator over transcripts
   [Symbol.iterator]() {
@@ -476,16 +585,19 @@ var Transcriptome = class _Transcriptome {
   numTranscripts() {
     return this.transcripts.length;
   }
+  numGenes() {
+    return this.transcriptsByGene.size;
+  }
   // iterator over splice junctions
   *junctions() {
     const seen_junctions = /* @__PURE__ */ new Set();
     for (const transcript of this.transcripts) {
       const exons = transcript.getExons();
       for (let i = 0; i < exons.length - 1; i++) {
-        const junction = [exons[i].end, exons[i + 1].start];
-        if (!seen_junctions.has(junction)) {
-          seen_junctions.add(junction);
-          yield [junction[0], junction[1]];
+        const junctionKey = `${exons[i].end}-${exons[i + 1].start}`;
+        if (!seen_junctions.has(junctionKey)) {
+          seen_junctions.add(junctionKey);
+          yield [exons[i].end, exons[i + 1].start];
         }
       }
     }
@@ -507,6 +619,30 @@ var Transcriptome = class _Transcriptome {
         yield acceptor;
       }
     }
+  }
+  // Iterator for CDS features
+  *cds() {
+    for (const transcript of this.transcripts) {
+      for (const cdsFeature of transcript.getCDS()) {
+        yield cdsFeature;
+      }
+    }
+  }
+  // Iterator for all exons
+  *exons() {
+    for (const transcript of this.transcripts) {
+      for (const exon of transcript.getExons()) {
+        yield exon;
+      }
+    }
+  }
+  // Get the number of unique exons (by coordinates)
+  countUniqueExons() {
+    const uniqueExons = /* @__PURE__ */ new Set();
+    for (const exon of this.exons()) {
+      uniqueExons.add(`${exon.start}-${exon.end}`);
+    }
+    return uniqueExons.size;
   }
 };
 

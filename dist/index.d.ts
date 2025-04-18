@@ -117,25 +117,44 @@ declare class GTFObject {
     end: number;
     attributes: Record<string, string>;
     transcript_id?: string;
-    constructor(seqid: string, strand: string, start: number, end: number, type: FeatureType, attributes: Record<string, string>, transcript_id?: string);
+    score?: string;
+    source?: string;
+    phase?: string;
+    constructor(seqid: string, strand: string, start: number, end: number, type: FeatureType, attributes: Record<string, string>, transcript_id?: string, score?: string, source?: string, phase?: string);
     getAttribute(key: string): string;
     getStart(): number;
     getEnd(): number;
+    getStrand(): string;
+    getLength(): number;
+    getSeqId(): string;
+    getType(): FeatureType;
 }
 declare class Exon extends GTFObject {
+    getExonNumber(): number;
 }
 declare class CDS extends GTFObject {
+    getPhase(): number;
 }
 declare class Transcript extends GTFObject {
     exons: Exon[];
     cdsFeatures: CDS[];
     gene_id: string;
+    gene_name?: string;
+    transcript_name?: string;
+    transcript_biotype?: string;
     constructor(seqid: string, strand: string, start: number, end: number, attributes: Record<string, string>, transcript_id: string, gene_id: string);
     addExon(exon: Exon): void;
     addCDS(cds: CDS): void;
     getCDS(): CDS[];
     getExons(): Exon[];
     getTranscriptId(): string;
+    getGeneId(): string;
+    getGeneName(): string;
+    getTranscriptName(): string;
+    getBiotype(): string;
+    getCodingLength(): number;
+    getTotalExonLength(): number;
+    hasUTR(): boolean;
 }
 declare class Transcriptome {
     seqid?: string;
@@ -146,7 +165,10 @@ declare class Transcriptome {
     otherFeatures: GTFObject[];
     transcriptsByGene: Map<string, number[]>;
     transcriptsById: Map<string, number>;
+    geneNames: Map<string, string>;
     genome_length: number;
+    source_file?: string;
+    assembly?: string;
     constructor(gtfFile?: File);
     static fromExisting(existing: Transcriptome): Transcriptome;
     static create(file: File): Promise<Transcriptome>;
@@ -154,8 +176,22 @@ declare class Transcriptome {
     private parseAttributes;
     getTranscriptsByGene(gene_id: string): Transcript[] | undefined;
     getTranscriptById(transcript_id: string): Transcript | undefined;
+    getGeneName(gene_id: string): string;
+    getGeneIds(): string[];
     getStart(): number;
     getEnd(): number;
+    getStrand(): string;
+    getSeqId(): string;
+    getGenomeLength(): number;
+    getSummaryStats(): {
+        geneCount: number;
+        transcriptCount: number;
+        exonCount: number;
+        seqid: string | undefined;
+        strand: string | undefined;
+        start: number | undefined;
+        end: number | undefined;
+    };
     [Symbol.iterator](): {
         next(): {
             value: Transcript;
@@ -164,9 +200,13 @@ declare class Transcriptome {
     };
     genes(): Generator<[string, Transcript[]], void, unknown>;
     numTranscripts(): number;
+    numGenes(): number;
     junctions(): Generator<[number, number], void, unknown>;
     donors(): Generator<number, void, unknown>;
     acceptors(): Generator<number, void, unknown>;
+    cds(): Generator<CDS, void, unknown>;
+    exons(): Generator<Exon, void, unknown>;
+    countUniqueExons(): number;
 }
 
 interface GridConfig {
@@ -440,4 +480,4 @@ declare class TriangleConnector {
     plot(): void;
 }
 
-export { BarPlot, BedData, type BedFile, type BedLine, BoxPlot, CDS, D3Grid, DataPlotArray, type Dimensions, Exon, FaiData, type FaiFile, type FaiLine, GenomePlot, type GridConfig, IntegrationsData, type IntegrationsFile, type IntegrationsLine, type Interval, LinePlot, ORFPlot, type Padding, PathogenPlot, SJData, type SJFile, type SJLine, SequenceLogo, Transcript, Transcriptome, TranscriptomePlot, TranscriptomePlotLabels, TriangleConnector, adjustIntervals, computeMidpoint, parseBed, parseFai, parseIntegrations, parseSJ };
+export { BarPlot, BedData, type BedFile, type BedLine, BoxPlot, CDS, D3Grid, DataPlotArray, type Dimensions, Exon, FaiData, type FaiFile, type FaiLine, type FeatureType, GenomePlot, type GridConfig, IntegrationsData, type IntegrationsFile, type IntegrationsLine, type Interval, LinePlot, ORFPlot, type Padding, PathogenPlot, SJData, type SJFile, type SJLine, SequenceLogo, Transcript, Transcriptome, TranscriptomePlot, TranscriptomePlotLabels, TriangleConnector, adjustIntervals, computeMidpoint, parseBed, parseFai, parseIntegrations, parseSJ };
