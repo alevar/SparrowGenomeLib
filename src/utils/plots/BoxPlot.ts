@@ -118,18 +118,6 @@ export class BoxPlot {
         };
     }
 
-    private createBackgroundRect(): void {
-        this.svg.append("rect")
-            .attr("class", "grid-background")
-            .attr("x", 0)
-            .attr("y", 0)
-            .attr("width", this.dimensions.width)
-            .attr("height", this.dimensions.height)
-            .attr("fill", "none")
-            .attr("stroke", "black")
-            .attr("stroke-width", "3");
-    }
-
     private drawBoxPlot(stats: BoxStats): void {
         const x = this.xScale(stats.position);
         const center = x;
@@ -197,7 +185,6 @@ export class BoxPlot {
 
     public plot(): void {
         this.svg.selectAll("*").remove();
-        this.createBackgroundRect();
 
         if (!this.useProvidedYScale) {
             const allScores = this.bedData.getData().map(d => d.score);
