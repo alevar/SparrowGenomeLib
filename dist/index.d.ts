@@ -209,6 +209,78 @@ declare class Transcriptome {
     countUniqueExons(): number;
 }
 
+declare class Sequence {
+    private sequences;
+    private primarySeqId;
+    private length;
+    private source_file?;
+    constructor();
+    /**
+     * Create a Sequence instance from a FASTA file
+     */
+    static create(file: File): Promise<Sequence>;
+    /**
+     * Parse a FASTA file and populate the sequences map
+     */
+    private parseFastaFile;
+    /**
+     * Get the DNA sequence for a specific region
+     */
+    getSubsequence(start: number, end: number, seqId?: string): string;
+    /**
+     * Get the entire sequence for a specified seqId
+     */
+    getSequence(seqId?: string): string;
+    /**
+     * Get the reverse complement of a sequence
+     */
+    getReverseComplement(seqId?: string): string;
+    /**
+     * Helper function to get reverse complement of a DNA string
+     */
+    private reverseComplement;
+    /**
+     * Get sequence IDs
+     */
+    getSequenceIds(): string[];
+    /**
+     * Get primary sequence ID
+     */
+    getPrimarySequenceId(): string;
+    /**
+     * Set primary sequence ID
+     */
+    setPrimarySequenceId(seqId: string): void;
+    /**
+     * Get length of the sequence
+     */
+    getLength(seqId?: string): number;
+    /**
+     * Get source file name
+     */
+    getSourceFile(): string | undefined;
+    /**
+     * Check if sequence contains a specific seqId
+     */
+    hasSequence(seqId: string): boolean;
+    /**
+     * Get GC content of a sequence
+     */
+    getGCContent(seqId?: string): number;
+    /**
+     * Translate DNA sequence to protein (basic implementation)
+     */
+    translateToProtein(start: number, end: number, seqId?: string): string;
+    /**
+     * Calculate nucleotide frequencies
+     */
+    getNucleotideFrequencies(seqId?: string): Record<string, number>;
+    /**
+     * Create a summary of sequence properties
+     */
+    getSummary(seqId?: string): Record<string, any>;
+}
+
 interface GridConfig {
     columns: number;
     columnRatios: number[];
@@ -479,4 +551,4 @@ declare class TriangleConnector {
     plot(): void;
 }
 
-export { BarPlot, BedData, type BedFile, type BedLine, BoxPlot, CDS, D3Grid, DataPlotArray, type Dimensions, Exon, FaiData, type FaiFile, type FaiLine, type FeatureType, GenomePlot, type GridConfig, IntegrationsData, type IntegrationsFile, type IntegrationsLine, type Interval, LinePlot, ORFPlot, type Padding, PathogenPlot, SJData, type SJFile, type SJLine, SequenceLogo, Transcript, Transcriptome, TranscriptomePlot, TranscriptomePlotLabels, TriangleConnector, adjustIntervals, computeMidpoint, parseBed, parseFai, parseIntegrations, parseSJ };
+export { BarPlot, BedData, type BedFile, type BedLine, BoxPlot, CDS, D3Grid, DataPlotArray, type Dimensions, Exon, FaiData, type FaiFile, type FaiLine, type FeatureType, GenomePlot, type GridConfig, IntegrationsData, type IntegrationsFile, type IntegrationsLine, type Interval, LinePlot, ORFPlot, type Padding, PathogenPlot, SJData, type SJFile, type SJLine, Sequence, SequenceLogo, Transcript, Transcriptome, TranscriptomePlot, TranscriptomePlotLabels, TriangleConnector, adjustIntervals, computeMidpoint, parseBed, parseFai, parseIntegrations, parseSJ };
